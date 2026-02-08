@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kalkulator Neon dengan Loading Real-Time</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap');
+
+/* BODY */
+body {
+    font-family: 'Orbitron', sans-serif;
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #0f0f1f;
+}
+
+/* LOADING SCREEN */
+#loadingScreen {
+    position: fixed;
+    top:0; left:0;
+    width:100%; height:100%;
+    background:#0f0f1f;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    flex-direction: column;
+    color:#fff;
+    z-index:9999;
+}
+
+#donut {
+    border: 8px solid #222;
+    border-top: 8px solid #ff3d81;
+    border-radius: 50%;
+    width: 80px;
+    height: 80px;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg);}
+    100% { transform: rotate(360deg);}
+}
+
+#progressText {
+    font-size: 24px;
+}
+
+/* CALCULATOR */
+#calculator {
+    display:none;
+    background: linear-gradient(270deg, #ff6ec7, #ffc36e, #6effb3, #6eb0ff);
+    background-size: 800% 800%;
+    animation: gradientBG 15s ease infinite;
+    padding: 30px;
+    border-radius: 25px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.8), 0 0 40px #ff6ec7, 0 0 60px #6eb0ff;
+    width: 360px;
+    position: relative;
+}
+
+@keyframes gradientBG {
+    0% {background-position:0% 50%;}
+    50% {background-position:100% 50%;}
+    100% {background-position:0% 50%;}
+}
+
+#display {
+    width: 100%;
+    height: 70px;
+    margin-bottom: 20px;
+    border-radius: 20px;
+    border: none;
+    font-size: 28px;
+    text-align: right;
+    padding: 15px;
+    background-color: #1a1a2e;
+    color: #fff;
+    box-shadow: inset 0 5px 10px rgba(0,0,0,0.5);
+}
+
+.row {
+    display: flex;
+    justify-content: space-between;
+}
+
+button {
+    width: 70px;
+    height: 70px;
+    font-size: 24px;
+    margin: 5px;
+    border-radius: 15px;
+    border: none;
+    color: #fff;
+    background: #2a2a3f;
+    box-shadow: 0 5px #111;
+    transition: all 0.2s;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+button:active {
+    transform: translateY(4px);
+    box-shadow: 0 1px #111;
+    filter: brightness(1.2);
+}
+
+button.operator { background: #ff3d81; box-shadow: 0 5px #9e1c4b; }
+button.clear { background: #ffb86c; color: #000; box-shadow: 0 5px #9e6c3b; }
+button.equals { background: #6befff; color: #000; box-shadow: 0 5px #1c9ea0; }
+
+/* Partikel */
+.particle {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: #ff3d81;
+    border-radius: 50%;
+    animation: explode 0.8s forwards;
+    pointer-events: none;
+}
+
+@keyframes explode {
+    0% { transform: translate(0,0) scale(1); opacity:1;}
+    100% { transform: translate(var(--x), var(--y)) scale(0); opacity:0;}
+}
+
+</style>
+</head>
+<body>
+
+<!-- LOADING SCREEN -->
+<div id="loadingScreen">
+    <div id="donut"></div>
+    <div id="progressText">0%</div>
+</div>
+
+<!-- CALCULATOR -->
+<div id="calculator">
+    <input type="text" id="display" disabled>
+    <div class="row">
+        <button onclick="appendNumber('7')">7</button>
+        <button onclick="appendNumber('8')">8</button>
+        <button onclick="appendNumber('9')">9</button>
+        <button class="operator" onclick="chooseOperator('/')">÷ /</button>
+    </div>
+    <div class="row">
+        <button onclick="appendNumber('4')">4</button>
+        <button onclick="appendNumber('5')">5</button>
+        <button onclick="appendNumber('6')">6</button>
+        <button class="operator" onclick="chooseOperator('*')">× *</button>
+    </div>
+    <div class="row">
+        <button onclick="appendNumber('1')">1</button>
+        <button onclick="appendNumber('2')">2</button>
+        <button onclick="appendNumber('3')">3</button>
+        <button class="operator" onclick="chooseOperator('-')">-</button>
+    </div>
+    <div class="row">
+        <button onclick="appendNumber('0')">0</button>
+        <button class="clear" onclick="clearDisplay()">C</button>
+        <button class="equals" onclick="calculate()">=</button>
+        <button class="operator" onclick="chooseOperator('+')">+</button>
+    </div>
+</div>
+
+<script>
+let display = document.getElementById('display');
+let loaderScreen = document.getElementById('loadingScreen');
+let progressText = document.getElementById('progressText');
+let calculator = document.getElementById('calculator');
+let currentNumber = '';
+let previousNumber = '';
+let operator = '';
+
+// REAL-TIME LOADING
+window.addEventListener('load', () => {
+    let progress = 0;
+    let interval = setInterval(() => {
+        progress += 1;
+        progressText.textContent = progress + '%';
+        if(progress >= 100){
+            clearInterval(interval);
+            loaderScreen.style.display = 'none';
+            calculator.style.display = 'block';
+        }
+    }, 30); // 100% dalam 3 detik (30ms * 100 = 3000ms)
+});
+
+// Kalkulator Functions
+function appendNumber(num){
+    currentNumber += num;
+    display.value = currentNumber;
+}
+
+function chooseOperator(op){
+    if(currentNumber === '') return;
+    if(previousNumber !== '') calculate();
+    operator = op;
+    previousNumber = currentNumber;
+    currentNumber = '';
+}
+
+function createParticles(){
+    for(let i=0;i<15;i++){
+        let p = document.createElement('div');
+        p.classList.add('particle');
+        let angle = Math.random()*360;
+        let distance = Math.random()*50+30;
+        p.style.setProperty('--x', distance*Math.cos(angle*Math.PI/180)+'px');
+        p.style.setProperty('--y', distance*Math.sin(angle*Math.PI/180)+'px');
+        document.querySelector('.calculator').appendChild(p);
+        setTimeout(()=>p.remove(),800);
+    }
+}
+
+function calculate(){
+    if(previousNumber === '' || currentNumber === '') return;
+
+    display.value = '...';
+    setTimeout(()=>{
+        let a = parseFloat(previousNumber);
+        let b = parseFloat(currentNumber);
+        let result;
+        switch(operator){
+            case '+': result = a + b; break;
+            case '-': result = a - b; break;
+            case '*': result = a * b; break;
+            case '/': result = a / b; break;
+        }
+        display.value = result;
+        currentNumber = result.toString();
+        previousNumber = '';
+        operator = '';
+        createParticles();
+    }, 500); // biar efek loading kelihatan
+}
+
+function clearDisplay(){
+    currentNumber = '';
+    previousNumber = '';
+    operator = '';
+    display.value = '';
+}
+</script>
+
+</body>
+</html>
